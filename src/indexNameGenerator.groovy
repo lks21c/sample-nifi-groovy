@@ -1,0 +1,1 @@
+${path:contains('='):ifElse(${path:getDelimitedField(6, '/'):join("_"):join(${path:getDelimitedField(2, '=')})},${path:getDelimitedField(6, '/')})}
