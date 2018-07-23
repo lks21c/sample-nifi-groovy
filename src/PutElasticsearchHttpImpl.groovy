@@ -1,3 +1,4 @@
+import groovy.json.JsonSlurper
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.io.OutputStreamCallback
@@ -27,12 +28,31 @@ int randomNum = generator.nextInt(server.length);
 
 try {
     String indexName = flowFile.getAttribute("index_name");
+    String idBasedOp = flowFile.getAttribute("id-based-op");
     String typeName = "info";
+
+    if ("yes".equals(idBasedOp)) {
+        typeName = "detail";
+    }
+    String indexOp = flowFile.getAttribute('index-op');
+    if(indexOp == null || indexOp.length() == 0) {
+        indexOp = "index;"
+    }
+
     flowFile = session.putAttribute(flowFile, 'server_name', server[randomNum] + "/_bulk")
     session.read(flowFile, { inputStream ->
         inputStream.eachLine("UTF-8") { line, number ->
-            body << "{ \"index\" : { \"_index\" : \"" + indexName + "\", \"_type\" : \"" + typeName + "\" } }" + "\n"
-            body << line + "\n"
+            if ("yes".equals(idBasedOp)) {
+                def jsonObject = new JsonSlurper().parseText(line);
+                String id = jsonObject.get("_id");
+                body << "{ \"" + indexOp + "\" : { \"_index\" : \"" + indexName + "\", \"_type\" : \"" + typeName + "\", \"_id\" : \"" + id + "\" } }" + "\n"
+            } else {
+                body << "{ \"index\" : { \"_index\" : \"" + indexName + "\", \"_type\" : \"" + typeName + "\" } }" + "\n"
+            }
+
+            if (!indexOp.equalsIgnoreCase("delete")) {
+                body << line + "\n"
+            }
         }
 
         body = "" + body + ""

@@ -93,6 +93,8 @@ class PutElasticSearch5IndexProcessorScript implements Processor {
             final String indexOp = StringUtils.defaultString(flowFile.getAttribute('index-op'), 'index');
             final Charset charset = Charset.forName('UTF-8');
 
+            logger.warn(index);
+
             try {
                 final BulkRequestBuilder bulk = esClient.get().prepareBulk().setTimeout(TimeValue.timeValueMinutes(1));
                 session.read(flowFile, { inputStream ->
