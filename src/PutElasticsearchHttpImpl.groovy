@@ -1,3 +1,4 @@
+import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor.io.InputStreamCallback
@@ -42,8 +43,8 @@ try {
     flowFile = session.putAttribute(flowFile, 'server_name', server[randomNum] + "/_bulk")
     session.read(flowFile, { inputStream ->
         inputStream.eachLine("UTF-8") { line, number ->
+            def jsonObject = new JsonSlurper().parseText(line);
             if ("yes".equals(idBasedOp)) {
-                def jsonObject = new JsonSlurper().parseText(line);
                 String id = jsonObject.get("_id");
                 body << "{ \"" + indexOp + "\" : { \"_index\" : \"" + indexName + "\", \"_type\" : \"" + typeName + "\", \"_id\" : \"" + id + "\" } }" + "\n"
             } else {
@@ -51,7 +52,8 @@ try {
             }
 
             if (!indexOp.equalsIgnoreCase("delete")) {
-                body << line + "\n"
+                jsonObject.remove("_id")
+                body << JsonOutput.toJson(jsonObject) + "\n"
             }
         }
 
