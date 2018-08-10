@@ -44,17 +44,17 @@ try {
     flowFile = session.putAttribute(flowFile, 'server_name', server[randomNum] + "/_bulk")
     session.read(flowFile, { inputStream ->
         inputStream.eachLine("UTF-8") { line, number ->
-            def jsonObject = new JsonSlurper().parseText(line);
             if ("yes".equals(idBasedOp)) {
+                def jsonObject = new JsonSlurper().parseText(line);
                 String id = jsonObject.get("_id");
                 body << "{ \"" + indexOp + "\" : { \"_index\" : \"" + indexName + "\", \"_type\" : \"" + typeName + "\", \"_id\" : \"" + id + "\" } }" + "\n"
+                if (!indexOp.equalsIgnoreCase("delete")) {
+                    jsonObject.remove("_id")
+                    body << JsonOutput.toJson(jsonObject) + "\n"
+                }
             } else {
                 body << "{ \"index\" : { \"_index\" : \"" + indexName + "\", \"_type\" : \"" + typeName + "\" } }" + "\n"
-            }
-
-            if (!indexOp.equalsIgnoreCase("delete")) {
-                jsonObject.remove("_id")
-                body << JsonOutput.toJson(jsonObject) + "\n"
+                body << line + "\n"
             }
         }
 
